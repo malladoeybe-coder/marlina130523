@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CattleMaster - Manajemen Peternakan Sapi Penggemukan & Kesehatan</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        },
+                        amber: {
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col md:flex-row">
+
+    <!-- Mobile Header -->
+    <header class="md:hidden bg-emerald-800 text-white p-4 flex justify-between items-center shadow-md sticky top-0 z-50">
+        <div class="flex items-center space-x-2">
+            <i data-lucide="beef" class="w-7 h-7 text-emerald-300"></i>
+            <span class="font-bold text-lg tracking-wide">CattleMaster</span>
+        </div>
+        <button id="btnToggleMobileMenu" class="p-2 rounded hover:bg-emerald-700 focus:outline-none">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+    </header>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-200 ease-in-out w-64 bg-emerald-900 text-slate-100 flex flex-col z-40 shadow-xl">
+        <div class="p-5 border-b border-emerald-800 hidden md:flex items-center space-x-3">
+            <div class="p-2 bg-emerald-700 rounded-xl">
+                <i data-lucide="beef" class="w-7 h-7 text-emerald-200"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-wide text-white">CattleMaster</h1>
+                <p class="text-xs text-emerald-300">Sistem Penggemukan & Kesehatan</p>
+            </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 p-4 space-y-1.5 custom-scrollbar overflow-y-auto">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-colors bg-emerald-700 text-white">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span>Dashboard Overview</span>
+            </button>
+            <button onclick="switchTab('cows')" id="nav-cows" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-colors text-emerald-200 hover:bg-emerald-800 hover:text-white">
+                <i data-lucide="list" class="w-5 h-5"></i>
+                <span>Data Sapi & ADG</span>
+            </button>
+            <button onclick="switchTab('health')" id="nav-health" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-colors text-emerald-200 hover:bg-emerald-800 hover:text-white">
+                <i data-lucide="activity" class="w-5 h-5"></i>
+                <span>Rekam Medis & Vaksin</span>
+            </button>
+            <button onclick="switchTab('calculator')" id="nav-calculator" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-colors text-emerald-200 hover:bg-emerald-800 hover:text-white">
+                <i data-lucide="calculator" class="w-5 h-5"></i>
+                <span>Kalkulator Keuntungan</span>
+            </button>
+        </nav>
+
+        <!-- Sidebar Footer / Peternakan Info -->
+        <div class="p-4 border-t border-emerald-800 bg-emerald-950/40 text-xs text-emerald-300">
+            <div class="flex items-center justify-between mb-1">
+                <span class="font-semibold text-emerald-200">Peternakan Subur Jaya</span>
+                <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+            </div>
+            <p>Kapasitas Kandang: 50 Ekor</p>
+            <p class="mt-2 text-[10px] text-emerald-400/70">Terakhir Sinkron: Hari ini</p>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+
+        <!-- TAB 1: DASHBOARD OVERVIEW -->
+        <section id="tab-dashboard" class="tab-content space-y-6">
+            <!-- Top Welcome Banner -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Ringkasan Peternakan</h2>
+                    <p class="text-slate-500 text-sm mt-0.5">Monitoring kondisi kesehatan, bobot harian (ADG), dan jadwal peternakan.</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="openCowModal()" class="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition shadow-sm hover:shadow">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>Tambah Sapi Baru</span>
+                    </button>
+                    <button onclick="openMedicalModal()" class="flex items-center space-x-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition shadow-sm hover:shadow">
+                        <i data-lucide="stethoscope" class="w-4 h-4"></i>
+                        <span>Catat Rekam Medis</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <!-- Total Sapi -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Populasi</p>
+                        <h3 id="stat-total" class="text-3xl font-extrabold text-slate-800 mt-1">0</h3>
+                        <p class="text-xs text-emerald-600 mt-1 font-medium"><i data-lucide="trending-up" class="inline w-3 h-3"></i> Terdaftar Aktif</p>
+                    </div>
+                    <div class="p-3.5 bg-emerald-50 rounded-2xl text-emerald-600">
+                        <i data-lucide="beef" class="w-8 h-8"></i>
+                    </div>
+                </div>
+
+                <!-- Sapi Sehat -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kondisi Sehat</p>
+                        <h3 id="stat-healthy" class="text-3xl font-extrabold text-emerald-600 mt-1">0</h3>
+                        <p class="text-xs text-slate-500 mt-1">Dalam Program Penggemukan</p>
+                    </div>
+                    <div class="p-3.5 bg-emerald-50 rounded-2xl text-emerald-600">
+                        <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+                    </div>
+                </div>
+
+                <!-- Sakit / Perawatan -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sakit / Karantina</p>
+                        <h3 id="stat-sick" class="text-3xl font-extrabold text-rose-600 mt-1">0</h3>
+                        <p class="text-xs text-rose-500 mt-1 font-medium">Perlu Pengawasan Medis</p>
+                    </div>
+                    <div class="p-3.5 bg-rose-50 rounded-2xl text-rose-600">
+                        <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+                    </div>
+                </div>
+
+                <!-- Siap Panen -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Siap Panen / Jual</p>
+                        <h3 id="stat-ready" class="text-3xl font-extrabold text-amber-600 mt-1">0</h3>
+                        <p class="text-xs text-amber-600 mt-1 font-medium">Memenuhi Target Bobot</p>
+                    </div>
+                    <div class="p-3.5 bg-amber-50 rounded-2xl text-amber-600">
+                        <i data-lucide="badge-dollar-sign" class="w-8 h-8"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Charts & Early Warning Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Chart 1: Average Weight Trend -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg">Perkembangan Bobot Rata-rata (3 Bulan Terakhir)</h3>
+                            <p class="text-xs text-slate-500">Kenaikan bobot rata-rata seluruh populasi ternak (Kg)</p>
+                        </div>
+                        <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-medium rounded-full">Target ADG: > 1.1 Kg/Hari</span>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="weightTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Breed Distribution -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-lg mb-1">Distribusi Ras Sapi</h3>
+                        <p class="text-xs text-slate-500 mb-4">Proporsi jenis sapi di peternakan</p>
+                        <div class="h-48 relative flex justify-center items-center">
+                            <canvas id="breedChart"></canvas>
+                        </div>
+                    </div>
+                    <div id="breedLegend" class="grid grid-cols-2 gap-2 text-xs text-slate-600 mt-4 border-t pt-3 border-slate-100"></div>
+                </div>
+            </div>
+
+            <!-- Alerts & Early Warnings -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                            <i data-lucide="bell" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-lg">Peringatan Dini & Agenda Terdekat</h3>
+                    </div>
+                    <span class="text-xs text-slate-400">Pembaruan Real-time</span>
+                </div>
+                <div id="alertsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+
+        <!-- TAB 2: MANAJEMEN DATA SAPI & ADG -->
+        <section id="tab-cows" class="tab-content hidden space-y-6">
+            <!-- Header Filter & Search -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Data Populasi Sapi</h2>
+                    <p class="text-slate-500 text-sm mt-0.5">Kelola identitas, penimbangan bobot, dan performa ADG sapi.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="relative flex-1 sm:w-64">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="searchCowInput" oninput="renderCows()" placeholder="Cari Ear Tag atau Ras..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <select id="filterBreed" onchange="renderCows()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <option value="">Semua Ras</option>
+                        <option value="Limosin">Limosin</option>
+                        <option value="Simental">Simental</option>
+                        <option value="Brahman">Brahman</option>
+                        <option value="PO">PO (Peranakan Ongole)</option>
+                    </select>
+                    <select id="filterStatus" onchange="renderCows()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <option value="">Semua Status</option>
+                        <option value="Penggemukan">Penggemukan</option>
+                        <option value="Siap Panen">Siap Panen</option>
+                        <option value="Karantina">Karantina</option>
+                    </select>
+                    <button onclick="openCowModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center space-x-1.5 transition">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Sapi Baru</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Data Sapi -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                <th class="p-4">Ear Tag / Ras</th>
+                                <th class="p-4">Kelamin / Umur</th>
+                                <th class="p-4">Bobot Awal</th>
+                                <th class="p-4">Bobot Saat Ini</th>
+                                <th class="p-4">Target Bobot</th>
+                                <th class="p-4">ADG (Kg/Hari)</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cowTableBody" class="divide-y divide-slate-100 text-sm text-slate-700">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- TAB 3: MANAJEMEN KESEHATAN SAPI -->
+        <section id="tab-health" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Manajemen Kesehatan & Vaksinasi</h2>
+                    <p class="text-slate-500 text-sm mt-0.5">Catatan riwayat penyakit, pemberian vitamin, dan jadwal vaksin bulanan.</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="openMedicalModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center space-x-2 transition">
+                        <i data-lucide="file-plus" class="w-4 h-4"></i>
+                        <span>Tambah Rekam Medis</span>
+                    </button>
+                    <button onclick="openVaccineModal()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center space-x-2 transition">
+                        <i data-lucide="syringe" class="w-4 h-4"></i>
+                        <span>Buat Jadwal Vaksin</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Health Sub Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Jadwal Vaksin & Vitamin Terdekat -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-800 text-lg flex items-center space-x-2">
+                            <i data-lucide="calendar" class="w-5 h-5 text-emerald-600"></i>
+                            <span>Jadwal Vaksin / Vitamin</span>
+                        </h3>
+                    </div>
+                    <div id="vaccineListContainer" class="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Medical Records Table -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+                    <h3 class="font-bold text-slate-800 text-lg mb-4 flex items-center space-x-2">
+                        <i data-lucide="clipboard-list" class="w-5 h-5 text-emerald-600"></i>
+                        <span>Riwayat Rekam Medis Terakhir</span>
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase border-b border-slate-200">
+                                    <th class="p-3">Tgl</th>
+                                    <th class="p-3">Ear Tag</th>
+                                    <th class="p-3">Diagnosis / Gejala</th>
+                                    <th class="p-3">Obat / Treatment</th>
+                                    <th class="p-3">Petugas</th>
+                                    <th class="p-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="medicalTableBody" class="divide-y divide-slate-100">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- TAB 4: KALKULATOR ESTIMASI KEUNTUNGAN -->
+        <section id="tab-calculator" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+                <h2 class="text-2xl font-bold text-slate-800">Kalkulator Proyeksi Keuntungan Penggemukan</h2>
+                <p class="text-slate-500 text-sm mt-0.5">Hitung estimasi Biaya Pakan, Bobot Akhir, ROI, dan Laba Bersih sebelum masa panen.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Input Form -->
+                <div class="lg:col-span-7 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+                    <h3 class="font-bold text-slate-800 text-lg border-b pb-2">Parameter Modal & Pemeliharaan</h3>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Harga Beli Sapi (Rp)</label>
+                            <input type="number" id="calcBuyPrice" value="14000000" oninput="calculateROI()" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Bobot Awal (Kg)</label>
+                            <input type="number" id="calcInitialWeight" value="300" oninput="calculateROI()" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Target ADG / Kenaikan (Kg/Hari)</label>
+                            <input type="number" step="0.1" id="calcADG" value="1.2" oninput="calculateROI()" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Durasi Penggemukan (Hari)</label>
+                            <input type="number" id="calcDays" value="90" oninput="calculateROI()" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Biaya Pakan Harian (Rp/Hari)</label>
+                            <input type="number" id="calcFeedCost" value="35000" oninput="calculateROI()" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Biaya Lain (Vaksin, Vitamin, Dll)</label>
+                            <input type="number" id="calcOtherCost" value="300000" oninput="calculateROI()" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Estimasi Harga Jual Daging/Hidup (Rp / Kg)</label>
+                        <input type="number" id="calcSellPricePerKg" value="62000" oninput="calculateROI()" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Results Box -->
+                <div class="lg:col-span-5 bg-emerald-900 text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between space-y-6">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-emerald-800 pb-3">
+                            <h3 class="font-bold text-lg text-emerald-100">Hasil Proyeksi Financial</h3>
+                            <span class="px-2 py-1 bg-emerald-800 text-xs text-emerald-200 rounded-md">Estimasi</span>
+                        </div>
+
+                        <div class="mt-4 space-y-3">
+                            <div class="flex justify-between text-sm text-emerald-200">
+                                <span>Estimasi Bobot Akhir:</span>
+                                <span id="resFinalWeight" class="font-bold text-white">0 Kg</span>
+                            </div>
+                            <div class="flex justify-between text-sm text-emerald-200">
+                                <span>Total Biaya Pakan:</span>
+                                <span id="resTotalFeedCost" class="font-semibold text-white">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between text-sm text-emerald-200">
+                                <span>Total Modal Expenditure:</span>
+                                <span id="resTotalInvestment" class="font-semibold text-white">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between text-sm text-emerald-200 border-t border-emerald-800 pt-2">
+                                <span>Estimasi Penjualan Total:</span>
+                                <span id="resTotalRevenue" class="font-bold text-emerald-300">Rp 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Highlight Net Profit & ROI -->
+                    <div class="bg-emerald-800/80 p-4 rounded-xl border border-emerald-700 space-y-2">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider text-emerald-300 font-medium">Estimasi Laba Bersih</p>
+                            <h2 id="resNetProfit" class="text-3xl font-extrabold text-white mt-0.5">Rp 0</h2>
+                        </div>
+                        <div class="flex items-center justify-between text-xs pt-2 border-t border-emerald-700/60">
+                            <span class="text-emerald-200">Return on Investment (ROI):</span>
+                            <span id="resROI" class="font-bold text-emerald-300 text-sm">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: TAMBAH / EDIT SAPI -->
+    <div id="cowModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <button onclick="closeCowModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 id="cowModalTitle" class="text-xl font-bold text-slate-800 mb-4">Tambah Sapi Baru</h3>
+            
+            <form id="cowForm" onsubmit="saveCow(event)" class="space-y-4">
+                <input type="hidden" id="cowId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Ear Tag ID *</label>
+                    <input type="text" id="cowEarTag" required placeholder="Contoh: SP-009" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Ras Sapi</label>
+                        <select id="cowBreed" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="Limosin">Limosin</option>
+                            <option value="Simental">Simental</option>
+                            <option value="Brahman">Brahman</option>
+                            <option value="PO">PO (Peranakan Ongole)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Kelamin</label>
+                        <select id="cowGender" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="Jantan">Jantan</option>
+                            <option value="Betina">Betina</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Umur (Bulan)</label>
+                        <input type="number" id="cowAge" required min="1" value="18" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                        <select id="cowStatus" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="Penggemukan">Penggemukan</option>
+                            <option value="Siap Panen">Siap Panen</option>
+                            <option value="Karantina">Karantina</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Bobot Awal (Kg)</label>
+                        <input type="number" id="cowInitialWeight" required value="300" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Bobot Saat Ini (Kg)</label>
+                        <input type="number" id="cowCurrentWeight" required value="320" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Target Bobot (Kg)</label>
+                        <input type="number" id="cowTargetWeight" required value="500" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeCowModal()" class="px-4 py-2 border border-slate-300 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium">Simpan Sapi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- MODAL 2: DETAIL SAPI & HISTORY PENIMBANGAN -->
+    <div id="cowDetailModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <button onclick="closeCowDetailModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
+                    <i data-lucide="beef" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 id="detailEarTag" class="text-xl font-bold text-slate-800">SP-001</h3>
+                    <p id="detailSubtitle" class="text-xs text-slate-500">Ras Limosin • Jantan • 20 Bulan</p>
+                </div>
+            </div>
+
+            <!-- Individual Chart -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-5">
+                <h4 class="text-xs font-bold text-slate-600 uppercase mb-2">Grafik Riwayat Penimbangan Bobot</h4>
+                <div class="h-48">
+                    <canvas id="individualWeightChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Form Tambah Penimbangan Baru -->
+            <form onsubmit="addWeightRecord(event)" class="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 mb-5 flex flex-col sm:flex-row items-end gap-3">
+                <div class="flex-1 w-full">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Timbang</label>
+                    <input type="date" id="newWeightDate" required class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                </div>
+                <div class="flex-1 w-full">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Bobot Baru (Kg)</label>
+                    <input type="number" id="newWeightVal" required placeholder="Contoh: 425" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                </div>
+                <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition">
+                    + Catat
+                </button>
+            </form>
+
+            <!-- Table History -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-600 uppercase mb-2">Catatan Penimbangan</h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 text-xs text-slate-500 border-b">
+                                <th class="p-2">Tanggal</th>
+                                <th class="p-2">Bobot (Kg)</th>
+                                <th class="p-2">Kenaikan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailWeightTable" class="divide-y divide-slate-100">
+                            <!-- Dynamic -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL 3: REKAM MEDIS BARU -->
+    <div id="medicalModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="closeMedicalModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Tambah Rekam Medis</h3>
+
+            <form onsubmit="saveMedicalRecord(event)" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Sapi *</label>
+                        <select id="medCowSelect" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Pemeriksaan *</label>
+                        <input type="date" id="medDate" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Diagnosis / Gejala *</label>
+                    <input type="text" id="medDiagnosis" required placeholder="Contoh: Demam ringan, nafsu makan turun" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Obat / Treatment Diberikan *</label>
+                    <input type="text" id="medTreatment" required placeholder="Contoh: B-Complex Inject 10ml, Antibiotik" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Petugas / Dokter Hewan</label>
+                        <input type="text" id="medDoctor" value="drh. Aris" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Status Kesehatan Sapi</label>
+                        <select id="medStatus" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="Dalam Perawatan">Dalam Perawatan</option>
+                            <option value="Sembuh">Sembuh / Sehat</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeMedicalModal()" class="px-4 py-2 border border-slate-300 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium">Simpan Rekam Medis</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- MODAL 4: JADWAL VAKSIN BARU -->
+    <div id="vaccineModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+            <button onclick="closeVaccineModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Buat Jadwal Vaksin / Vitamin</h3>
+
+            <form onsubmit="saveVaccineSchedule(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Vaksin / Vitamin *</label>
+                    <select id="vacType" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <option value="Vaksin PMK Booster">Vaksin PMK Booster</option>
+                        <option value="Obat Cacing (Deworming)">Obat Cacing (Deworming)</option>
+                        <option value="Vitamin B-Complex & ADE">Vitamin B-Complex & ADE</option>
+                        <option value="Vaksin Anthrax">Vaksin Anthrax</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Target Sapi / Kelompok *</label>
+                    <input type="text" id="vacTarget" placeholder="Contoh: Semua Sapi Kandang A atau SP-002" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Jadwal *</label>
+                    <input type="date" id="vacDate" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeVaccineModal()" class="px-4 py-2 border border-slate-300 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-medium">Simpan Jadwal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Sample Initial Data
+        const defaultCows = [
+            { id: '1', earTag: 'SP-001', breed: 'Limosin', gender: 'Jantan', age: 22, initialWeight: 320, currentWeight: 450, targetWeight: 520, status: 'Penggemukan', startDate: '2026-08-01', history: [ {date: '2026-08-01', weight: 320}, {date: '2026-09-01', weight: 365}, {date: '2026-10-01', weight: 410}, {date: '2026-10-25', weight: 450} ] },
+            { id: '2', earTag: 'SP-002', breed: 'Simental', gender: 'Jantan', age: 24, initialWeight: 350, currentWeight: 530, targetWeight: 520, status: 'Siap Panen', startDate: '2026-07-15', history: [ {date: '2026-07-15', weight: 350}, {date: '2026-08-15', weight: 410}, {date: '2026-09-15', weight: 475}, {date: '2026-10-20', weight: 530} ] },
+            { id: '3', earTag: 'SP-003', breed: 'Brahman', gender: 'Jantan', age: 18, initialWeight: 280, currentWeight: 360, targetWeight: 480, status: 'Penggemukan', startDate: '2026-08-10', history: [ {date: '2026-08-10', weight: 280}, {date: '2026-09-10', weight: 320}, {date: '2026-10-10', weight: 360} ] },
+            { id: '4', earTag: 'SP-004', breed: 'PO', gender: 'Betina', age: 20, initialWeight: 260, currentWeight: 310, targetWeight: 420, status: 'Karantina', startDate: '2026-09-01', history: [ {date: '2026-09-01', weight: 260}, {date: '2026-10-01', weight: 290}, {date: '2026-10-22', weight: 310} ] },
+            { id: '5', earTag: 'SP-005', breed: 'Limosin', gender: 'Jantan', age: 21, initialWeight: 340, currentWeight: 510, targetWeight: 500, status: 'Siap Panen', startDate: '2026-07-01', history: [ {date: '2026-07-01', weight: 340}, {date: '2026-08-01', weight: 395}, {date: '2026-09-01', weight: 450}, {date: '2026-10-15', weight: 510} ] }
+        ];
+
+        const defaultMedicalRecords = [
+            { id: 'm1', cowId: '4', earTag: 'SP-004', date: '2026-10-22', diagnosis: 'Kembung (Bloat) Ringan & Nafsu Makan Turun', treatment: 'Pemberian Anti-bloat 100ml + Vitamin B-Complex', doctor: 'drh. Aris', status: 'Dalam Perawatan' },
+            { id: 'm2', cowId: '1', earTag: 'SP-001', date: '2026-09-15', diagnosis: 'Luka Ringan Kaki Belakang', treatment: 'Pembersihan antiseptik + Semprot Gusanex', doctor: 'Petugas Budi', status: 'Sembuh' }
+        ];
+
+        const defaultVaccines = [
+            { id: 'v1', type: 'Vaksin PMK Booster', target: 'Semua Sapi Kandang A', date: '2026-11-05', completed: false },
+            { id: 'v2', type: 'Obat Cacing (Deworming)', target: 'SP-003, SP-004', date: '2026-11-10', completed: false },
+            { id: 'v3', type: 'Vitamin B-Complex & ADE', target: 'Semua Sapi Penggemukan', date: '2026-10-28', completed: true }
+        ];
+
+        // State Variables
+        let cows = JSON.parse(localStorage.getItem('cm_cows')) || defaultCows;
+        let medicalRecords = JSON.parse(localStorage.getItem('cm_medicals')) || defaultMedicalRecords;
+        let vaccines = JSON.parse(localStorage.getItem('cm_vaccines')) || defaultVaccines;
+        let selectedCowForDetail = null;
+
+        // Chart References
+        let weightChartInstance = null;
+        let breedChartInstance = null;
+        let individualChartInstance = null;
+
+        // Save to LocalStorage helper
+        function saveData() {
+            localStorage.setItem('cm_cows', JSON.stringify(cows));
+            localStorage.setItem('cm_medicals', JSON.stringify(medicalRecords));
+            localStorage.setItem('cm_vaccines', JSON.stringify(vaccines));
+        }
+
+        // Initialize App
+        window.onload = function() {
+            lucide.createIcons();
+            renderDashboard();
+            renderCows();
+            renderHealth();
+            calculateROI();
+            setupMobileMenu();
+        };
+
+        function setupMobileMenu() {
+            const btn = document.getElementById('btnToggleMobileMenu');
+            const sidebar = document.getElementById('sidebar');
+            btn.addEventListener('click', () => {
+                sidebar.classList.toggle('-translate-x-full');
+            });
+        }
+
+        // Tab Switcher
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('bg-emerald-700', 'text-white');
+                el.classList.add('text-emerald-200');
+            });
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${tabName}`);
+            activeBtn.classList.add('bg-emerald-700', 'text-white');
+            activeBtn.classList.remove('text-emerald-200');
+
+            // Close sidebar on mobile after tab select
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+            }
+
+            if (tabName === 'dashboard') {
+                renderDashboard();
+            }
+        }
+
+        // Calculate ADG helper (Average Daily Gain)
+        function calculateADG(cow) {
+            if (!cow.history || cow.history.length < 2) return 0;
+            const start = new Date(cow.history[0].date);
+            const latest = new Date(cow.history[cow.history.length - 1].date);
+            const daysDiff = Math.max(1, Math.round((latest - start) / (1000 * 60 * 60 * 24)));
+            const weightGain = cow.currentWeight - cow.initialWeight;
+            return (weightGain / daysDiff).toFixed(2);
+        }
+
+        // --- DASHBOARD FUNCTIONS ---
+        function renderDashboard() {
+            // Stats
+            const total = cows.length;
+            const sick = cows.filter(c => c.status === 'Karantina').length;
+            const ready = cows.filter(c => c.status === 'Siap Panen' || c.currentWeight >= c.targetWeight).length;
+            const healthy = total - sick;
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-healthy').innerText = healthy;
+            document.getElementById('stat-sick').innerText = sick;
+            document.getElementById('stat-ready').innerText = ready;
+
+            // Render Early Warning Alerts
+            renderAlerts();
+
+            // Render Charts
+            renderDashboardCharts();
+        }
+
+        function renderAlerts() {
+            const alertsContainer = document.getElementById('alertsContainer');
+            alertsContainer.innerHTML = '';
+
+            let alerts = [];
+
+            // 1. Check Quarantine cows
+            cows.filter(c => c.status === 'Karantina').forEach(c => {
+                alerts.push({
+                    type: 'danger',
+                    icon: 'alert-circle',
+                    title: `Sapi ID ${c.earTag} Butuh Perhatian Medis`,
+                    desc: `Status Karantina/Isolasi. Cek rekam medis untuk perkembangan.`
+                });
+            });
+
+            // 2. Check Upcoming Vaccines
+            vaccines.filter(v => !v.completed).forEach(v => {
+                alerts.push({
+                    type: 'warning',
+                    icon: 'calendar',
+                    title: `Jadwal ${v.type}`,
+                    desc: `Target: ${v.target} (Tgl: ${v.date})`
+                });
+            });
+
+            // 3. Ready to harvest
+            cows.filter(c => c.status === 'Siap Panen').forEach(c => {
+                alerts.push({
+                    type: 'success',
+                    icon: 'check-circle',
+                    title: `Sapi ID ${c.earTag} Siap Panen!`,
+                    desc: `Bobot saat ini (${c.currentWeight} Kg) telah mencapai target.`
+                });
+            });
+
+            if (alerts.length === 0) {
+                alertsContainer.innerHTML = `<div class="col-span-full text-slate-400 text-sm italic">Tidak ada peringatan medis atau jadwal mendesak saat ini.</div>`;
+                return;
+            }
+
+            alerts.forEach(a => {
+                let bg = a.type === 'danger' ? 'bg-rose-50 border-rose-200 text-rose-800' : 
+                         a.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800';
+                let iconColor = a.type === 'danger' ? 'text-rose-600' : a.type === 'warning' ? 'text-amber-600' : 'text-emerald-600';
+
+                alertsContainer.innerHTML += `
+                    <div class="p-4 rounded-xl border ${bg} flex items-start space-x-3">
+                        <div class="mt-0.5 ${iconColor}">
+                            <i data-lucide="${a.icon}" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm mb-0.5">${a.title}</h4>
+                            <p class="text-xs opacity-90">${a.desc}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function renderDashboardCharts() {
+            // Trend Chart
+            const ctx1 = document.getElementById('weightTrendChart').getContext('2d');
+            if (weightChartInstance) weightChartInstance.destroy();
+
+            weightChartInstance = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Awal Agustus', 'Akhir Agustus', 'Pertengahan Sept', 'Oktober Ini'],
+                    datasets: [{
+                        label: 'Bobot Rata-rata Populas (Kg)',
+                        data: [300, 345, 390, 432],
+                        borderColor: '#059669',
+                        backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 3,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: false, grid: { color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Breed Doughnut Chart
+            const ctx2 = document.getElementById('breedChart').getContext('2d');
+            if (breedChartInstance) breedChartInstance.destroy();
+
+            const breedsCount = {};
+            cows.forEach(c => {
+                breedsCount[c.breed] = (breedsCount[c.breed] || 0) + 1;
+            });
+
+            const labels = Object.keys(breedsCount);
+            const dataVals = Object.values(breedsCount);
+            const colors = ['#059669', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899'];
+
+            breedChartInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataVals,
+                        backgroundColor: colors.slice(0, labels.length)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Breed Legend Custom Render
+            const breedLegend = document.getElementById('breedLegend');
+            breedLegend.innerHTML = '';
+            labels.forEach((l, i) => {
+                breedLegend.innerHTML += `
+                    <div class="flex items-center space-x-1.5">
+                        <span class="w-3 h-3 rounded-full" style="background-color: ${colors[i]}"></span>
+                        <span class="truncate">${l}: <strong>${breedsCount[l]} ekor</strong></span>
+                    </div>
+                `;
+            });
+        }
+
+
+        // --- DATA SAPI & ADG FUNCTIONS ---
+        function renderCows() {
+            const tableBody = document.getElementById('cowTableBody');
+            const searchVal = document.getElementById('searchCowInput').value.toLowerCase();
+            const filterBreed = document.getElementById('filterBreed').value;
+            const filterStatus = document.getElementById('filterStatus').value;
+
+            const filtered = cows.filter(c => {
+                const matchSearch = c.earTag.toLowerCase().includes(searchVal) || c.breed.toLowerCase().includes(searchVal);
+                const matchBreed = !filterBreed || c.breed === filterBreed;
+                const matchStatus = !filterStatus || c.status === filterStatus;
+                return matchSearch && matchBreed && matchStatus;
+            });
+
+            tableBody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Data sapi tidak ditemukan.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(c => {
+                const adg = calculateADG(c);
+                let statusBadge = c.status === 'Siap Panen' ? 'bg-amber-100 text-amber-800' :
+                                 c.status === 'Karantina' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800';
+
+                tableBody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-semibold text-slate-900">
+                            <div>${c.earTag}</div>
+                            <div class="text-xs text-slate-400 font-normal">${c.breed}</div>
+                        </td>
+                        <td class="p-4">${c.gender} <span class="text-slate-400">(${c.age} Bln)</span></td>
+                        <td class="p-4 font-medium">${c.initialWeight} Kg</td>
+                        <td class="p-4 font-bold text-emerald-700">${c.currentWeight} Kg</td>
+                        <td class="p-4 text-slate-500">${c.targetWeight} Kg</td>
+                        <td class="p-4">
+                            <span class="font-bold text-slate-800">+${adg}</span> <span class="text-[10px] text-slate-400">Kg/hr</span>
+                        </td>
+                        <td class="p-4">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${statusBadge}">${c.status}</span>
+                        </td>
+                        <td class="p-4 text-center">
+                            <div class="flex items-center justify-center space-x-2">
+                                <button onclick="viewCowDetail('${c.id}')" title="Detail & Penimbangan" class="p-1.5 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg">
+                                    <i data-lucide="line-chart" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="openCowModal('${c.id}')" title="Edit Data" class="p-1.5 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded-lg">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="deleteCow('${c.id}')" title="Hapus" class="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            lucide.createIcons();
+            populateCowSelects();
+        }
+
+        // Cow Modal Handler
+        function openCowModal(id = null) {
+            const modal = document.getElementById('cowModal');
+            const title = document.getElementById('cowModalTitle');
+            document.getElementById('cowForm').reset();
+            document.getElementById('cowId').value = '';
+
+            if (id) {
+                const cow = cows.find(c => c.id === id);
+                if (cow) {
+                    title.innerText = 'Edit Data Sapi';
+                    document.getElementById('cowId').value = cow.id;
+                    document.getElementById('cowEarTag').value = cow.earTag;
+                    document.getElementById('cowBreed').value = cow.breed;
+                    document.getElementById('cowGender').value = cow.gender;
+                    document.getElementById('cowAge').value = cow.age;
+                    document.getElementById('cowStatus').value = cow.status;
+                    document.getElementById('cowInitialWeight').value = cow.initialWeight;
+                    document.getElementById('cowCurrentWeight').value = cow.currentWeight;
+                    document.getElementById('cowTargetWeight').value = cow.targetWeight;
+                }
+            } else {
+                title.innerText = 'Tambah Sapi Baru';
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeCowModal() {
+            document.getElementById('cowModal').classList.add('hidden');
+        }
+
+        function saveCow(e) {
+            e.preventDefault();
+            const id = document.getElementById('cowId').value;
+            const earTag = document.getElementById('cowEarTag').value.toUpperCase();
+            const breed = document.getElementById('cowBreed').value;
+            const gender = document.getElementById('cowGender').value;
+            const age = parseInt(document.getElementById('cowAge').value);
+            const status = document.getElementById('cowStatus').value;
+            const initialWeight = parseFloat(document.getElementById('cowInitialWeight').value);
+            const currentWeight = parseFloat(document.getElementById('cowCurrentWeight').value);
+            const targetWeight = parseFloat(document.getElementById('cowTargetWeight').value);
+
+            const today = new Date().toISOString().split('T')[0];
+
+            if (id) {
+                // Edit
+                const cow = cows.find(c => c.id === id);
+                if (cow) {
+                    cow.earTag = earTag;
+                    cow.breed = breed;
+                    cow.gender = gender;
+                    cow.age = age;
+                    cow.status = status;
+                    cow.initialWeight = initialWeight;
+                    cow.currentWeight = currentWeight;
+                    cow.targetWeight = targetWeight;
+                }
+            } else {
+                // New
+                const newCow = {
+                    id: Date.now().toString(),
+                    earTag,
+                    breed,
+                    gender,
+                    age,
+                    status,
+                    initialWeight,
+                    currentWeight,
+                    targetWeight,
+                    startDate: today,
+                    history: [{ date: today, weight: currentWeight }]
+                };
+                cows.push(newCow);
+            }
+
+            saveData();
+            closeCowModal();
+            renderCows();
+            renderDashboard();
+        }
+
+        function deleteCow(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus data sapi ini?')) {
+                cows = cows.filter(c => c.id !== id);
+                saveData();
+                renderCows();
+                renderDashboard();
+            }
+        }
+
+        // --- COW DETAIL & WEIGHT HISTORY ---
+        function viewCowDetail(id) {
+            selectedCowForDetail = cows.find(c => c.id === id);
+            if (!selectedCowForDetail) return;
+
+            document.getElementById('detailEarTag').innerText = selectedCowForDetail.earTag;
+            document.getElementById('detailSubtitle').innerText = `Ras ${selectedCowForDetail.breed} • ${selectedCowForDetail.gender} • ${selectedCowForDetail.age} Bulan`;
+            document.getElementById('newWeightDate').value = new Date().toISOString().split('T')[0];
+
+            renderIndividualChart();
+            renderWeightTable();
+
+            document.getElementById('cowDetailModal').classList.remove('hidden');
+        }
+
+        function closeCowDetailModal() {
+            document.getElementById('cowDetailModal').classList.add('hidden');
+        }
+
+        function renderIndividualChart() {
+            const ctx = document.getElementById('individualWeightChart').getContext('2d');
+            if (individualChartInstance) individualChartInstance.destroy();
+
+            const labels = selectedCowForDetail.history.map(h => h.date);
+            const weights = selectedCowForDetail.history.map(h => h.weight);
+
+            individualChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Bobot (Kg)',
+                        data: weights,
+                        borderColor: '#059669',
+                        backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                        fill: true,
+                        tension: 0.2,
+                        borderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: false } }
+                }
+            });
+        }
+
+        function renderWeightTable() {
+            const container = document.getElementById('detailWeightTable');
+            container.innerHTML = '';
+
+            const history = selectedCowForDetail.history;
+            history.forEach((h, i) => {
+                let diffText = '-';
+                if (i > 0) {
+                    const diff = h.weight - history[i - 1].weight;
+                    diffText = `<span class="${diff >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600'}">${diff >= 0 ? '+' : ''}${diff} Kg</span>`;
+                }
+
+                container.innerHTML += `
+                    <tr>
+                        <td class="p-2">${h.date}</td>
+                        <td class="p-2 font-semibold text-slate-800">${h.weight} Kg</td>
+                        <td class="p-2">${diffText}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function addWeightRecord(e) {
+            e.preventDefault();
+            const date = document.getElementById('newWeightDate').value;
+            const weight = parseFloat(document.getElementById('newWeightVal').value);
+
+            if (selectedCowForDetail) {
+                selectedCowForDetail.history.push({ date, weight });
+                selectedCowForDetail.currentWeight = weight; // update current weight
+                
+                // Auto check status if target reached
+                if (selectedCowForDetail.currentWeight >= selectedCowForDetail.targetWeight && selectedCowForDetail.status === 'Penggemukan') {
+                    selectedCowForDetail.status = 'Siap Panen';
+                }
+
+                saveData();
+                renderIndividualChart();
+                renderWeightTable();
+                renderCows();
+                renderDashboard();
+                document.getElementById('newWeightVal').value = '';
+            }
+        }
+
+
+        // --- MANAJEMEN KESEHATAN & VAKSIN ---
+        function renderHealth() {
+            // Render Medical Table
+            const medBody = document.getElementById('medicalTableBody');
+            medBody.innerHTML = '';
+
+            if (medicalRecords.length === 0) {
+                medBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada rekam medis.</td></tr>`;
+            } else {
+                medicalRecords.forEach(m => {
+                    let statusBadge = m.status === 'Sembuh' || m.status === 'Sembuh / Sehat' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800';
+                    medBody.innerHTML += `
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-3 text-slate-500">${m.date}</td>
+                            <td class="p-3 font-semibold text-slate-800">${m.earTag}</td>
+                            <td class="p-3 text-slate-700 font-medium">${m.diagnosis}</td>
+                            <td class="p-3 text-slate-600">${m.treatment}</td>
+                            <td class="p-3 text-slate-500">${m.doctor}</td>
+                            <td class="p-3"><span class="px-2 py-0.5 text-xs font-semibold rounded-full ${statusBadge}">${m.status}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Render Vaccines List
+            const vacContainer = document.getElementById('vaccineListContainer');
+            vacContainer.innerHTML = '';
+
+            vaccines.forEach(v => {
+                let badgeClass = v.completed ? 'bg-slate-100 text-slate-500 line-through' : 'bg-amber-50 border-amber-200 text-amber-900';
+                vacContainer.innerHTML += `
+                    <div class="p-3.5 rounded-xl border ${badgeClass} flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-sm">${v.type}</h4>
+                            <p class="text-xs opacity-80">Target: ${v.target}</p>
+                            <p class="text-[11px] font-semibold mt-1">Tgl: ${v.date}</p>
+                        </div>
+                        <button onclick="toggleVaccineComplete('${v.id}')" class="p-2 rounded-lg hover:bg-white/60 transition" title="Tandai Selesai">
+                            <i data-lucide="${v.completed ? 'check-circle-2' : 'circle'}" class="w-5 h-5 ${v.completed ? 'text-emerald-600' : 'text-amber-600'}"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function populateCowSelects() {
+            const select = document.getElementById('medCowSelect');
+            if (!select) return;
+            select.innerHTML = '';
+            cows.forEach(c => {
+                select.innerHTML += `<option value="${c.id}">${c.earTag} (${c.breed})</option>`;
+            });
+        }
+
+        // Medical Record Modal
+        function openMedicalModal() {
+            populateCowSelects();
+            document.getElementById('medDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('medicalModal').classList.remove('hidden');
+        }
+
+        function closeMedicalModal() {
+            document.getElementById('medicalModal').classList.add('hidden');
+        }
+
+        function saveMedicalRecord(e) {
+            e.preventDefault();
+            const cowId = document.getElementById('medCowSelect').value;
+            const cow = cows.find(c => c.id === cowId);
+            const date = document.getElementById('medDate').value;
+            const diagnosis = document.getElementById('medDiagnosis').value;
+            const treatment = document.getElementById('medTreatment').value;
+            const doctor = document.getElementById('medDoctor').value;
+            const status = document.getElementById('medStatus').value;
+
+            const record = {
+                id: Date.now().toString(),
+                cowId,
+                earTag: cow ? cow.earTag : 'Unknown',
+                date,
+                diagnosis,
+                treatment,
+                doctor,
+                status
+            };
+
+            medicalRecords.unshift(record);
+
+            // Update cow status if in treatment
+            if (cow && status === 'Dalam Perawatan') {
+                cow.status = 'Karantina';
+            } else if (cow && status === 'Sembuh / Sehat' && cow.status === 'Karantina') {
+                cow.status = 'Penggemukan';
+            }
+
+            saveData();
+            closeMedicalModal();
+            renderHealth();
+            renderCows();
+            renderDashboard();
+        }
+
+        // Vaccine Modal
+        function openVaccineModal() {
+            document.getElementById('vacDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('vaccineModal').classList.remove('hidden');
+        }
+
+        function closeVaccineModal() {
+            document.getElementById('vaccineModal').classList.add('hidden');
+        }
+
+        function saveVaccineSchedule(e) {
+            e.preventDefault();
+            const type = document.getElementById('vacType').value;
+            const target = document.getElementById('vacTarget').value;
+            const date = document.getElementById('vacDate').value;
+
+            vaccines.unshift({
+                id: Date.now().toString(),
+                type,
+                target,
+                date,
+                completed: false
+            });
+
+            saveData();
+            closeVaccineModal();
+            renderHealth();
+            renderDashboard();
+        }
+
+        function toggleVaccineComplete(id) {
+            const v = vaccines.find(item => item.id === id);
+            if (v) {
+                v.completed = !v.completed;
+                saveData();
+                renderHealth();
+                renderDashboard();
+            }
+        }
+
+
+        // --- KALKULATOR KEUNTUNGAN PENGGEMUKAN ---
+        function calculateROI() {
+            const buyPrice = parseFloat(document.getElementById('calcBuyPrice').value) || 0;
+            const initialWeight = parseFloat(document.getElementById('calcInitialWeight').value) || 0;
+            const adg = parseFloat(document.getElementById('calcADG').value) || 0;
+            const days = parseFloat(document.getElementById('calcDays').value) || 0;
+            const feedCostPerDay = parseFloat(document.getElementById('calcFeedCost').value) || 0;
+            const otherCost = parseFloat(document.getElementById('calcOtherCost').value) || 0;
+            const sellPricePerKg = parseFloat(document.getElementById('calcSellPricePerKg').value) || 0;
+
+            // Calculations
+            const weightGain = adg * days;
+            const finalWeight = initialWeight + weightGain;
+            const totalFeedCost = feedCostPerDay * days;
+            const totalInvestment = buyPrice + totalFeedCost + otherCost;
+            const totalRevenue = finalWeight * sellPricePerKg;
+            const netProfit = totalRevenue - totalInvestment;
+            const roi = totalInvestment > 0 ? (netProfit / totalInvestment) * 100 : 0;
+
+            // Render Output
+            document.getElementById('resFinalWeight').innerText = `${finalWeight.toFixed(1)} Kg (+${weightGain.toFixed(1)} Kg)`;
+            document.getElementById('resTotalFeedCost').innerText = formatRupiah(totalFeedCost);
+            document.getElementById('resTotalInvestment').innerText = formatRupiah(totalInvestment);
+            document.getElementById('resTotalRevenue').innerText = formatRupiah(totalRevenue);
+            document.getElementById('resNetProfit').innerText = formatRupiah(netProfit);
+            document.getElementById('resROI').innerText = `${roi.toFixed(1)}%`;
+        }
+
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
+        }
+    </script>
+</body>
+</html>
